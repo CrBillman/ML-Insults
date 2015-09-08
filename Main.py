@@ -15,7 +15,7 @@ import numpy as np
 
 Plot_ROC = True
 Save_Plots = True
-Print_NB_Probs = True
+Print_NB_Probs = False
 
 
 # Initalizes a dictionary, which will be filled based solely on the components of the training set.
@@ -52,7 +52,6 @@ for i in xrange(0,N_Train):
 	if(Train_Set[i][0]==1):
 		N_Insult=N_Insult+1
 
-print N_Insult, N_Train
 
 # Calls a function to generate the probability needed for using the Naive Bayes Rule for insult classification.  NB_Prob is a 3 x (N_words) matrix, which contains three probabilities for each word:
 #	[0] : Probability this word is encountered in a comment in the training set
@@ -67,25 +66,9 @@ NB_Prob=Fcts.Naive_Bayes(Train_Set,Dictionary,N_Insult)
 Num_Right=0
 False_Positive=0
 Correct_Insults=0
-Insult_Prob=np.empty([N_Train])
+Insult_Prob=Fcts.Eval_NB(Train_Set,Dictionary,NB_Prob,N_Insult,N_Train)
+
 for i in xrange(0,N_Train):
-	Words=Train_Set[i][7].split()
-	Prob_Sum=0.0
-	for j in xrange(0,len(Words)):
-		Word_Check=Words[j].strip('"')
-		Word_Check=Word_Check.strip('.')
-		Word_Check=Word_Check.lower()
-		Word_Index=Dictionary.index(Word_Check)
-		Ind_Prob=NB_Prob[1,Word_Index]*(N_Insult/float(N_Train))/(NB_Prob[1,Word_Index]*(N_Insult/float(N_Train))+NB_Prob[2,Word_Index]*(1-N_Insult/float(N_Train)))
-		Prob_Sum=Prob_Sum+(np.log(1-Ind_Prob)-np.log(Ind_Prob))
-	if(Prob_Sum>40.0):
-		Insult_Prob[i]=0.0
-	elif(np.isneginf(Prob_Sum)):
-		Insult_Prob[i]=1.0
-	elif(np.isinf(Prob_Sum)):
-		Insult_Prob[i]=0.0
-	else:
-		Insult_Prob[i]=1/(1+np.exp(Prob_Sum))
 	if(Train_Set[i][0]==round(Insult_Prob[i])):
 		Num_Right=Num_Right+1
 	if((Train_Set[i][0]==0) and (Insult_Prob[i]>=0.5)):
@@ -101,4 +84,33 @@ if(Print_NB_Probs):
 
 # Plots the ROC, and if Save_Plots==True, it saves it in "ROC.png"
 if(Plot_ROC):
-	Fcts.ROC(Train_Set,Insult_Prob,Save_Plots,N_Insult)
+	if(Save_Plots):
+		Fcts.ROC(Train_Set,Insult_Prob,"Train-ROC.png",N_Insult)
+	else:
+		Fcts.ROC(Train_Set,Insult_Prob,None,N_Insult)
+
+Test_Set=Fcts.Read_Data("test_with_solutions.csv")
+
+N_Test=len(Test_Set)
+Num_Right=0
+False_Positive=0
+Correct_Insults=0
+N_T_Insult=0
+
+Insult_Prob=Fcts.Eval_NB(Test_Set,Dictionary,NB_Prob,N_Insult,N_Train)
+
+for i in xrange(0,N_Test):
+	if(Test_Set[i][0]==round(Insult_Prob[i])):
+		Num_Right=Num_Right+1
+	if((Test_Set[i][0]==0) and (Insult_Prob[i]>=0.5)):
+		False_Positive=False_Positive+1
+	if((Train_Set[i][0]==1) and (Insult_Prob[i]>=0.5)):
+		Correct_Insults=Correct_Insults+1
+	if(Test_Set[i][0]==1):
+		N_T_Insult=N_T_Insult+1
+
+if(Plot_ROC):
+	if(Save_Plots):
+		Fcts.ROC(Test_Set,Insult_Prob,"Test-ROC.png",N_T_Insult)
+	else:
+		Fcts.ROC(Test_Set,Insult_Prob,None,N_T_Insult)
